@@ -1,0 +1,96 @@
+/* config.php - Database connection */
+<?php
+$host = "localhost";
+$dbname = "airbnb_platform";
+$username = "root";
+$password = "";
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
+?>
+
+/* register.php - User Registration */
+<?php
+include 'config.php';
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+    if ($stmt->execute([$name, $email, $password])) {
+        header("Location: login.php");
+        exit();
+    } else {
+        echo "Error registering user.";
+    }
+}
+?>
+
+<form method="post" style="max-width: 400px; margin: auto;">
+    <input type="text" name="name" placeholder="Full Name" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <input type="email" name="email" placeholder="Email" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <input type="password" name="password" placeholder="Password" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <button type="submit" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none;">Register</button>
+</form>
+
+/* login.php - User Login */
+<?php
+session_start();
+include 'config.php';
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+    
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user_id'] = $user['id'];
+        header("Location: dashboard.php");
+        exit();
+    } else {
+        echo "Invalid credentials.";
+    }
+}
+?>
+
+<form method="post" style="max-width: 400px; margin: auto;">
+    <input type="email" name="email" placeholder="Email" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <input type="password" name="password" placeholder="Password" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <button type="submit" style="width: 100%; padding: 10px; background: #007bff; color: white; border: none;">Login</button>
+</form>
+
+/* add_listing.php - Add New Listing */
+<?php
+session_start();
+include 'config.php';
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $title = $_POST['title'];
+    $description = $_POST['description'];
+    $price = $_POST['price'];
+    $location = $_POST['location'];
+    $user_id = $_SESSION['user_id'];
+    
+    $stmt = $pdo->prepare("INSERT INTO listings (user_id, title, description, price, location) VALUES (?, ?, ?, ?, ?)");
+    if ($stmt->execute([$user_id, $title, $description, $price, $location])) {
+        header("Location: listings.php");
+        exit();
+    } else {
+        echo "Error adding listing.";
+    }
+}
+?>
+
+<form method="post" style="max-width: 400px; margin: auto;">
+    <input type="text" name="title" placeholder="Title" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <textarea name="description" placeholder="Description" required style="width: 100%; padding: 10px; margin: 5px 0;"></textarea>
+    <input type="number" name="price" placeholder="Price" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <input type="text" name="location" placeholder="Location" required style="width: 100%; padding: 10px; margin: 5px 0;">
+    <button type="submit" style="width: 100%; padding: 10px; background: #17a2b8; color: white; border: none;">Add Listing</button>
+</form>
